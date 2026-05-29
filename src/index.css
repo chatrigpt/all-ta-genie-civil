@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "Plus Jakarta Sans", sans-serif;
+  
+  --color-brand-red: #DC2626;
+  --color-brand-red-dark: #991B1B;
+  --color-brand-black: #0A0A0C;
+  --color-brand-darkgray: #16161A;
+}
+
+/* Custom depth-relief button classes for the high-end 3D feel */
+.depth-btn-red {
+  background-color: #DC2626;
+  color: #FFFFFF;
+  border: 1px solid #991B1B;
+  box-shadow: 0 4px 0 0 #7F1D1D;
+  transition: all 0.1s ease;
+}
+.depth-btn-red:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 0 #7F1D1D;
+}
+.depth-btn-red:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 #7F1D1D;
+}
+
+.depth-btn-black {
+  background-color: #0A0A0C;
+  color: #FFFFFF;
+  border: 1px solid #16161A;
+  box-shadow: 0 4px 0 0 #000000;
+  transition: all 0.1s ease;
+}
+.depth-btn-black:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 0 #000000;
+}
+.depth-btn-black:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 #000000;
+}
+
+.depth-btn-white {
+  background-color: #FFFFFF;
+  color: #0A0A0C;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 0 0 #D1D5DB;
+  transition: all 0.1s ease;
+}
+.depth-btn-white:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 0 #D1D5DB;
+}
+.depth-btn-white:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 #D1D5DB;
+}
+
+/* Custom visual styles for subtle noise or grid background */
+.grid-bg-light {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(220, 38, 38, 0.04) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(220, 38, 38, 0.04) 1px, transparent 1px);
+}
+
+.grid-bg-dark {
+  background-size: 40px 40px;
+  background-image: linear-gradient(to right, rgba(220, 38, 38, 0.06) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(220, 38, 38, 0.06) 1px, transparent 1px);
+}

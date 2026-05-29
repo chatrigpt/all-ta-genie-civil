@@ -1,0 +1,6 @@
+{
+  "name": "ALL-TA Genie Civil",
+  "description": "Catalogue digital interactif officiel et espace administrateur de l'agence immobilière agréée ALL-TA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
