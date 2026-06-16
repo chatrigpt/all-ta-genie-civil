@@ -65,7 +65,7 @@ export async function fetchBiensFromSheet(): Promise<Bien[]> {
     const text = await response.text();
     const rows = parseCSV(text);
 
-    if (rows.length < 2) return [];
+    if (rows.length < 2) return getBackupBiens();
 
     const headers = rows[0].map(h => h.toUpperCase());
     
@@ -80,23 +80,28 @@ export async function fetchBiensFromSheet(): Promise<Bien[]> {
 
     const result: Bien[] = [];
     for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (row.length < 3) continue;
+       const row = rows[i];
+       if (row.length < 3) continue;
 
-      const bien: Bien = {
-        site: siteIdx !== -1 && row[siteIdx] ? row[siteIdx] : "",
-        superficie: supIdx !== -1 && row[supIdx] ? row[supIdx] : "",
-        document: docIdx !== -1 && row[docIdx] ? row[docIdx] : "",
-        prix: prixIdx !== -1 && row[prixIdx] ? row[prixIdx] : "",
-        nombreMois: moisIdx !== -1 && row[moisIdx] ? row[moisIdx] : "",
-        mensualites: mensIdx !== -1 && row[mensIdx] ? row[mensIdx] : "",
-        categorie: catIdx !== -1 && row[catIdx] ? row[catIdx] : ""
-      };
+       const bien: Bien = {
+         site: siteIdx !== -1 && row[siteIdx] ? row[siteIdx] : "",
+         superficie: supIdx !== -1 && row[supIdx] ? row[supIdx] : "",
+         document: docIdx !== -1 && row[docIdx] ? row[docIdx] : "",
+         prix: prixIdx !== -1 && row[prixIdx] ? row[prixIdx] : "",
+         nombreMois: moisIdx !== -1 && row[moisIdx] ? row[moisIdx] : "",
+         mensualites: mensIdx !== -1 && row[mensIdx] ? row[mensIdx] : "",
+         categorie: catIdx !== -1 && row[catIdx] ? row[catIdx] : ""
+       };
 
-      if (bien.site && bien.superficie && bien.prix) {
-        result.push(bien);
-      }
+       if (bien.site && bien.superficie && bien.prix) {
+         result.push(bien);
+       }
     }
+
+    if (result.length === 0) {
+      return getBackupBiens();
+    }
+
     return result;
   } catch (error) {
     console.error("Erreur lors de la recuperation des biens:", error);

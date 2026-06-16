@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, FileSpreadsheet, Eye, EyeOff, Plus, CheckCircle, AlertTriangle, Key, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { Lock, FileSpreadsheet, Eye, EyeOff, Plus, CheckCircle, AlertTriangle, Key, ArrowLeft, Image as ImageIcon, Trash2, Edit, FileText } from 'lucide-react';
 import { Bien, Categorie } from '../types';
 
 interface AdminPanelProps {
   categories: Categorie[];
+  biens: Bien[];
   onAddBienLocal: (bien: Bien) => void;
+  onUpdateBienLocal: (oldBien: Bien, updatedBien: Bien) => void;
+  onDeleteBienLocal: (bien: Bien) => void;
   onAddCategorieLocal: (cat: Categorie) => void;
   onClose: () => void;
   isLoggedIn: boolean;
   onLoginSuccess: () => void;
 }
 
-export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieLocal, onClose, isLoggedIn, onLoginSuccess }: AdminPanelProps) {
+export default function AdminPanel({ categories, biens, onAddBienLocal, onUpdateBienLocal, onDeleteBienLocal, onAddCategorieLocal, onClose, isLoggedIn, onLoginSuccess }: AdminPanelProps) {
   // Authentication states
   const [password, setPassword] = useState('');
   const [storedPassword, setStoredPassword] = useState('ALLTA2026');
@@ -24,7 +27,7 @@ export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieL
   const [confirmNewPass, setConfirmNewPass] = useState('');
   const [changeStatus, setChangeStatus] = useState({ success: false, message: '' });
 
-  // Add Bien form states
+  // Add/Edit Bien form states
   const [site, setSite] = useState('');
   const [superficie, setSuperficie] = useState('');
   const [document, setDocument] = useState('');
@@ -34,6 +37,14 @@ export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieL
   const [selectedCat, setSelectedCat] = useState('');
   const [bienSubmitting, setBienSubmitting] = useState(false);
   const [bienFeedback, setBienFeedback] = useState({ type: '', msg: '' });
+
+  // Edit states
+  const [isEditing, setIsEditing] = useState(false);
+  const [originalBien, setOriginalBien] = useState<Bien | null>(null);
+
+  // Deletion trackers
+  const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
+  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(null);
 
   // Add Categorie form states
   const [catName, setCatName] = useState('');
@@ -86,6 +97,85 @@ export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieL
     setChangeStatus({ success: true, message: 'Mot de passe mis a jour avec succes' });
   };
 
+  const formatFCFA = (valStr: string) => {
+    if (!valStr) return "-";
+    const clean = valStr.toString().replace(/\s/g, '').replace(/FCFA/g, '');
+    const num = parseInt(clean, 10);
+    if (isNaN(num)) return valStr;
+    return new Intl.NumberFormat('fr-FR').format(num) + ' FCFA';
+  };
+
+  const handleStartEdit = (bien: Bien) => {
+    setIsEditing(true);
+    setOriginalBien(bien);
+    setSite(bien.site);
+    setSuperficie(bien.superficie);
+    setDocument(bien.document);
+    setPrix(bien.prix);
+    setSelectedCat(bien.categorie);
+    setNombreMois(bien.nombreMois || '');
+    setMensualites(bien.mensualites || '');
+    
+    // Scroll smoothly to form view
+    const formElement = document.getElementById('bien-form-container');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setOriginalBien(null);
+    setSite('');
+    setSuperficie('');
+    setDocument('');
+    setPrix('');
+    setSelectedCat('');
+    setNombreMois('');
+    setMensualites('');
+    setBienFeedback({ type: '', msg: '' });
+  };
+
+  const handleDeleteBien = async (bien: Bien, idx: number) => {
+    setDeletingIndex(idx);
+    setBienFeedback({ type: '', msg: '' });
+
+    const payload = {
+      SITES: bien.site,
+      "SUPERFICIE EN M²": parseFloat(bien.superficie) || bien.superficie,
+      "DOCUMENT EN FIN DE PROJET": bien.document,
+      "PRIX DE VENTE": parseFloat(bien.prix) || bien.prix,
+      "NOMBRE DE MOIS": bien.nombreMois ? parseInt(bien.nombreMois, 10) : "",
+      "MENSUALITES": bien.mensualites ? parseFloat(bien.mensualites) : "",
+      "CATEGORIE": bien.categorie
+    };
+
+    try {
+      const deleteUrl = "https://digitaladn225.app.n8n.cloud/webhook/all-ta-delete";
+      const response = await fetch(deleteUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Statut: ${response.status}`);
+      }
+
+      onDeleteBienLocal(bien);
+      setConfirmDeleteIndex(null);
+      setBienFeedback({ type: 'success', msg: 'Le bien immobilier a été supprimé avec succès du catalogue' });
+    } catch (error) {
+      console.error(error);
+      setBienFeedback({
+        type: 'error',
+        msg: "Erreur lors de la suppression du bien immobilier. Veuillez réessayer."
+      });
+    } finally {
+      setDeletingIndex(null);
+    }
+  };
+
   // Enregistrement des propriétés dans la base de données
   const handleAddBien = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +189,7 @@ export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieL
 
     setBienSubmitting(true);
 
-    const payload = {
+    const payload: any = {
       SITES: site,
       "SUPERFICIE EN M²": parseFloat(superficie) || superficie,
       "DOCUMENT EN FIN DE PROJET": document,
@@ -109,8 +199,21 @@ export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieL
       "CATEGORIE": selectedCat
     };
 
+    if (isEditing && originalBien) {
+      payload["ORIGINAL_SITES"] = originalBien.site;
+      payload["ORIGINAL_SUPERFICIE EN M²"] = parseFloat(originalBien.superficie) || originalBien.superficie;
+      payload["ORIGINAL_DOCUMENT EN FIN DE PROJET"] = originalBien.document;
+      payload["ORIGINAL_PRIX DE VENTE"] = parseFloat(originalBien.prix) || originalBien.prix;
+      payload["ORIGINAL_CATEGORIE"] = originalBien.categorie;
+      payload["ORIGINAL_NOMBRE DE MOIS"] = originalBien.nombreMois ? parseInt(originalBien.nombreMois, 10) : "";
+      payload["ORIGINAL_MENSUALITES"] = originalBien.mensualites ? parseFloat(originalBien.mensualites) : "";
+    }
+
     try {
-      const targetUrl = "https://digitaladn225.app.n8n.cloud/webhook/all-ta-catalogue";
+      const targetUrl = isEditing 
+        ? "https://digitaladn225.app.n8n.cloud/webhook/all-ta-update"
+        : "https://digitaladn225.app.n8n.cloud/webhook/all-ta-catalogue";
+
       const response = await fetch(targetUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,8 +224,7 @@ export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieL
         throw new Error(`Statut: ${response.status}`);
       }
 
-      // Add to local state dynamically for live feedback in current session
-      onAddBienLocal({
+      const updatedBien: Bien = {
         site,
         superficie,
         document,
@@ -130,23 +232,34 @@ export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieL
         nombreMois,
         mensualites,
         categorie: selectedCat
-      });
+      };
 
-      // Clear property fields
-      setSite('');
-      setSuperficie('');
-      setDocument('');
-      setPrix('');
-      setNombreMois('');
-      setMensualites('');
-      setSelectedCat('');
-      setBienFeedback({ type: 'success', msg: 'Le bien immobilier a été ajouté avec succès au catalogue' });
+      if (isEditing && originalBien) {
+        onUpdateBienLocal(originalBien, updatedBien);
+        setBienFeedback({ type: 'success', msg: 'Le bien immobilier a été modifié avec succès dans le catalogue' });
+        handleCancelEdit();
+      } else {
+        // Add to local state dynamically for live feedback in current session
+        onAddBienLocal(updatedBien);
+
+        // Clear property fields
+        setSite('');
+        setSuperficie('');
+        setDocument('');
+        setPrix('');
+        setNombreMois('');
+        setMensualites('');
+        setSelectedCat('');
+        setBienFeedback({ type: 'success', msg: 'Le bien immobilier a été ajouté avec succès au catalogue' });
+      }
 
     } catch (error) {
       console.error(error);
       setBienFeedback({ 
         type: 'error', 
-        msg: "Erreur lors de l'enregistrement du bien immobilier. Veuillez réessayer." 
+        msg: isEditing
+          ? "Erreur lors de la modification du bien immobilier. Veuillez réessayer."
+          : "Erreur lors de l'enregistrement du bien immobilier. Veuillez réessayer." 
       });
     } finally {
       setBienSubmitting(false);
@@ -317,12 +430,20 @@ export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieL
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Form 1: Ajouter un Bien (Property Form) */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white dark:bg-brand-darkgray rounded-2xl border border-gray-100 dark:border-gray-800 p-6 space-y-4 shadow-sm">
-            <h3 className="text-base font-bold text-brand-black dark:text-white border-b border-gray-100 dark:border-gray-800 pb-2 flex items-center gap-2">
-              <Plus className="h-5 w-5 text-brand-red animate-pulse" /> Ajouter un Bien Immobilier au Catalogue
-            </h3>
+        {/* Form 1: Ajouter/Modifier un Bien (Property Form) */}
+        <div className="lg:col-span-2 space-y-4" id="bien-form-container">
+          <div className={`bg-white dark:bg-brand-darkgray rounded-2xl border p-6 space-y-4 shadow-sm transition-all duration-300 ${
+            isEditing ? 'border-amber-500 shadow-md ring-1 ring-amber-500/20' : 'border-gray-100 dark:border-gray-800'
+          }`}>
+            {isEditing ? (
+              <h3 className="text-base font-bold text-amber-600 dark:text-amber-500 border-b border-gray-100 dark:border-gray-800 pb-2 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-amber-500 animate-pulse" /> Modifier un Bien Immobilier : {originalBien?.site}
+              </h3>
+            ) : (
+              <h3 className="text-base font-bold text-brand-black dark:text-white border-b border-gray-100 dark:border-gray-800 pb-2 flex items-center gap-2">
+                <Plus className="h-5 w-5 text-brand-red animate-pulse" /> Ajouter un Bien Immobilier au Catalogue
+              </h3>
+            )}
 
             {bienFeedback.msg && (
               <div className={`p-4 rounded-xl text-xs flex items-start gap-2.5 font-sans ${
@@ -441,15 +562,31 @@ export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieL
                 />
               </div>
 
-              <div className="md:col-span-2 pt-2">
+              <div className="md:col-span-2 pt-2 flex flex-col sm:flex-row gap-3">
                 <button
                   type="submit"
                   disabled={bienSubmitting}
-                  className="w-full depth-btn-red py-2.5 rounded-xl font-bold font-sans text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className={`flex-grow py-2.5 rounded-xl font-bold font-sans text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-colors ${
+                    isEditing 
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-md' 
+                      : 'depth-btn-red text-white'
+                  }`}
                   id="submit-bien-webhook"
                 >
-                  {bienSubmitting ? "Ajout du bien en cours..." : "Ajouter le bien immobilier au catalogue"}
+                  {bienSubmitting 
+                    ? (isEditing ? "Modification en cours..." : "Ajout en cours...") 
+                    : (isEditing ? "Sauvegarder les modifications" : "Ajouter le bien immobilier au catalogue")
+                  }
                 </button>
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold text-sm transition-all cursor-pointer font-sans"
+                  >
+                    Annuler
+                  </button>
+                )}
               </div>
 
             </form>
@@ -604,6 +741,174 @@ export default function AdminPanel({ categories, onAddBienLocal, onAddCategorieL
 
         </div>
 
+      </div>
+
+      {/* Liste de gestion des biens du catalogue */}
+      <div className="bg-white dark:bg-brand-darkgray rounded-2xl border border-gray-100 dark:border-gray-800 p-6 space-y-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 pb-4">
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold text-brand-black dark:text-white flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5 text-brand-red" /> Catalogue des Biens Actuels ({biens?.length || 0} biens)
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-gray-400 font-sans">
+              Visualisez, modifiez ou supprimez les biens immobiliers de votre catalogue. Les changements seront instantanément synchronisés via webhook.
+            </p>
+          </div>
+        </div>
+
+        {(!biens || biens.length === 0) ? (
+          <div className="text-center py-10 border border-dashed border-gray-200 dark:border-gray-800 rounded-xl bg-gray-50/50">
+            <p className="text-sm text-gray-400 font-sans">Aucun bien enregistré dans le catalogue.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto border border-gray-100 dark:border-gray-800 rounded-xl">
+            {/* Desktop Table View */}
+            <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-800 text-left text-xs font-sans hidden md:table">
+              <thead className="bg-gray-50 dark:bg-brand-black text-[10px] font-mono text-gray-450 uppercase tracking-wider">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Site</th>
+                  <th className="px-4 py-3 font-semibold">Catégorie</th>
+                  <th className="px-4 py-3 font-semibold">Superficie</th>
+                  <th className="px-4 py-3 font-semibold">Document</th>
+                  <th className="px-4 py-3 font-semibold">Prix de vente</th>
+                  <th className="px-4 py-3 font-semibold text-center">Mensualités</th>
+                  <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-brand-darkgray">
+                {biens.map((bien, idx) => {
+                  const hasCredit = bien.nombreMois && bien.mensualites;
+                  return (
+                    <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
+                      <td className="px-4 py-3.5 font-bold text-gray-900 dark:text-white">{bien.site}</td>
+                      <td className="px-4 py-3.5">
+                        <span className="bg-gray-100 dark:bg-zinc-805 text-gray-750 dark:text-gray-300 text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase font-mono">
+                          {bien.categorie}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-gray-500 dark:text-gray-400">{bien.superficie} M²</td>
+                      <td className="px-4 py-3.5 text-gray-500 dark:text-gray-400 font-mono font-medium">{bien.document}</td>
+                      <td className="px-4 py-3.5 font-extrabold text-brand-red font-mono">{formatFCFA(bien.prix)}</td>
+                      <td className="px-4 py-3.5 text-center text-gray-500 font-mono">
+                        {hasCredit ? (
+                          <span className="text-green-650 dark:text-green-400 font-extrabold text-[11px] bg-green-500/10 dark:bg-green-500/5 px-2.5 py-1 rounded-lg">
+                            {bien.nombreMois} mois x {formatFCFA(bien.mensualites)}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300 dark:text-gray-700">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                        {confirmDeleteIndex === idx ? (
+                          <div className="flex items-center justify-end gap-1.5 animate-fade-in">
+                            <span className="text-[10px] text-brand-red font-bold font-mono">Confirmer ?</span>
+                            <button
+                              onClick={() => handleDeleteBien(bien, idx)}
+                              disabled={deletingIndex !== null}
+                              className="bg-brand-red text-white font-bold text-[10px] px-2.5 py-1 rounded hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+                            >
+                              Oui
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteIndex(null)}
+                              className="bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 font-bold text-[10px] px-2.5 py-1 rounded hover:bg-gray-200 cursor-pointer"
+                            >
+                              Non
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-3">
+                            <button
+                              onClick={() => handleStartEdit(bien)}
+                              className="text-amber-600 hover:text-amber-800 hover:underline cursor-pointer flex items-center gap-0.5 font-bold"
+                            >
+                              <Edit className="h-3 w-3 inline" /> Modifier
+                            </button>
+                            <span className="text-gray-200 dark:text-gray-700">|</span>
+                            <button
+                              onClick={() => setConfirmDeleteIndex(idx)}
+                              className="text-brand-red hover:text-red-700 hover:underline cursor-pointer flex items-center gap-0.5 font-bold"
+                            >
+                              <Trash2 className="h-3 w-3 inline" /> Supprimer
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Mobile Cards View */}
+            <div className="grid grid-cols-1 divide-y divide-gray-100 dark:divide-gray-800 md:hidden bg-white dark:bg-brand-darkgray text-gray-900 dark:text-white">
+              {biens.map((bien, idx) => {
+                const hasCredit = bien.nombreMois && bien.mensualites;
+                return (
+                  <div key={idx} className="p-4 space-y-3 hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-extrabold text-sm leading-tight">{bien.site}</h4>
+                        <span className="inline-block mt-1 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 text-[9px] px-2 py-0.5 rounded-full font-semibold uppercase font-mono">
+                          {bien.categorie}
+                        </span>
+                      </div>
+                      <div className="text-right font-mono">
+                        <div className="text-xs font-extrabold text-brand-red">{formatFCFA(bien.prix)}</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400">{bien.superficie} M²</div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 text-[11px] text-gray-500 dark:text-gray-400 font-mono">
+                      <div>Document: <span className="font-medium text-gray-800 dark:text-gray-200">{bien.document}</span></div>
+                      {hasCredit && (
+                        <div className="text-green-650 dark:text-green-450 font-semibold">
+                          Facilité: {bien.nombreMois} mois x {formatFCFA(bien.mensualites)}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-50 dark:border-gray-800 flex justify-end gap-2 text-xs">
+                      {confirmDeleteIndex === idx ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-brand-red font-bold font-mono">Confirmer ?</span>
+                          <button
+                            onClick={() => handleDeleteBien(bien, idx)}
+                            disabled={deletingIndex !== null}
+                            className="bg-brand-red text-white font-extrabold text-[10px] px-3 py-1 rounded-lg hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+                          >
+                            Supprimer
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteIndex(null)}
+                            className="bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 font-extrabold text-[10px] px-3 py-1 rounded-lg hover:bg-gray-200 cursor-pointer"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleStartEdit(bien)}
+                            className="text-amber-600 hover:text-amber-800 font-semibold bg-amber-50 dark:bg-amber-950/20 rounded-lg px-2.5 py-1 cursor-pointer flex items-center gap-1"
+                          >
+                            <Edit className="h-3 w-3" /> Modifier
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteIndex(idx)}
+                            className="text-brand-red hover:text-red-700 font-semibold bg-red-50 dark:bg-red-950/20 rounded-lg px-2.5 py-1 cursor-pointer flex items-center gap-1"
+                          >
+                            <Trash2 className="h-3 w-3" /> Supprimer
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
     </div>

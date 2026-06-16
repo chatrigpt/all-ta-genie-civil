@@ -56,6 +56,26 @@ export default function App() {
     setBiens(prev => [newBien, ...prev]);
   };
 
+  const handleUpdateBienLocal = (oldBien: Bien, updatedBien: Bien) => {
+    setBiens(prev => prev.map(b => (
+      b.site === oldBien.site &&
+      b.superficie === oldBien.superficie &&
+      b.prix === oldBien.prix &&
+      b.categorie === oldBien.categorie &&
+      b.document === oldBien.document
+    ) ? updatedBien : b));
+  };
+
+  const handleDeleteBienLocal = (bienToDelete: Bien) => {
+    setBiens(prev => prev.filter(b => !(
+      b.site === bienToDelete.site &&
+      b.superficie === bienToDelete.superficie &&
+      b.prix === bienToDelete.prix &&
+      b.categorie === bienToDelete.categorie &&
+      b.document === bienToDelete.document
+    )));
+  };
+
   const handleAddCategorieLocal = (newCat: Categorie) => {
     setCategories(prev => [newCat, ...prev]);
   };
@@ -288,7 +308,10 @@ export default function App() {
           <div className="animate-fade-in">
             <AdminPanel 
               categories={categories}
+              biens={biens}
               onAddBienLocal={handleAddBienLocal}
+              onUpdateBienLocal={handleUpdateBienLocal}
+              onDeleteBienLocal={handleDeleteBienLocal}
               onAddCategorieLocal={handleAddCategorieLocal}
               onClose={() => setView('landing')}
               isLoggedIn={isAdminLoggedIn}
