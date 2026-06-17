@@ -15,7 +15,7 @@ export default function Footer() {
               ALL-TA <span className="text-brand-red">GENIE CIVIL</span>
             </h3>
             <p className="text-xs text-gray-400 max-w-sm leading-relaxed">
-              Cabinet d'expertise en promotion immobiliere, vente de terrains et travaux publics en Cote d'Ivoire. Agence Immobiliere Agreee.
+              Cabinet d'expertise en promotion immobilière, vente de terrains et travaux publics en Côte d'Ivoire. Agent Immobilier Agréé.
             </p>
           </div>
 

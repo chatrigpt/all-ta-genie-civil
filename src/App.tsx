@@ -118,7 +118,7 @@ export default function App() {
                     IMMOBILIER <span className="text-brand-red">CLE EN MAIN</span>
                   </h1>
                   <p className="text-base text-gray-600 dark:text-gray-400 font-sans max-w-2xl mx-auto lg:mx-0">
-                    ALL-TA Genie Civil facilite l'acquisition securisée de biens immobiliers à travers toute la Cote d'Ivoire. Consultez notre catalogue et passez votre commande en un clic.
+                    ALL-TA Génie Civil facilite l'acquisition sécurisée de biens immobiliers à travers toute la Côte d'Ivoire. Consultez notre catalogue et passez votre commande en un clic.
                   </p>
                 </div>
 
@@ -219,7 +219,7 @@ export default function App() {
                     <ul className="space-y-2 font-sans text-xs text-gray-500">
                       <li className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-brand-red shrink-0" />
-                        Achat direct promoteur agreé sans intermediaires frauduleux.
+                        Achat direct promoteur agréé sans intermédiaires frauduleux.
                       </li>
                       <li className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-brand-red shrink-0" />
@@ -227,7 +227,7 @@ export default function App() {
                       </li>
                       <li className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-brand-red shrink-0" />
-                        Facilités de paiement mensuelles sur-mesure de 12 à 24 mois.
+                        Facilités de paiement mensuelles sur mesure de 3, 6, 12, 24 et 36 mois.
                       </li>
                     </ul>
                   </div>
@@ -260,9 +260,9 @@ export default function App() {
                 {/* Card 1: Vente de terrains */}
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-brand-red/30 transition-all">
                   <LayoutGrid className="h-8 w-8 text-brand-red mb-3" />
-                  <h4 className="text-base font-bold text-brand-black mb-1.5">Terrains Certifies</h4>
+                  <h4 className="text-base font-bold text-brand-black mb-1.5">Terrains Certifiés</h4>
                   <p className="text-xs text-gray-500 leading-relaxed font-sans">
-                    Des lots homogenes prêts a batir, situes dans des zones en pleine expansion avec documents de fin de projet ACD valides.
+                    Des lots homogènes prêts à bâtir, situés dans des zones en pleine expansion avec documents de fin de projet ACD valides.
                   </p>
                 </div>
 
@@ -271,7 +271,7 @@ export default function App() {
                   <FileCheck className="h-8 w-8 text-brand-red mb-3" />
                   <h4 className="text-base font-bold text-brand-black mb-1.5">Assistance administrative</h4>
                   <p className="text-xs text-gray-500 leading-relaxed font-sans">
-                    ALL-TA prend en charge toutes vos demarches administratives jusq'a l'obtention finale de vos titres de propriete sans complications.
+                    ALL-TA prend en charge toutes vos démarches administratives jusqu’à l’obtention finale de vos titres de propriété sans complications.
                   </p>
                 </div>
               </div>

@@ -46,7 +46,7 @@ export default function Header({ onOpenAdmin, isLoggedIn, onLogout }: HeaderProp
               ALL-TA <span className="text-brand-red">GENIE CIVIL</span>
             </h1>
             <p className="text-xs font-mono text-gray-500">
-              Agence Immobiliere Agreee - Facilitateur de commandes
+              Agent Immobilier Agréé - Facilitateur de commandes
             </p>
           </div>
         </div>
